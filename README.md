@@ -17,8 +17,11 @@ Runs AI agents (OpenCode, Aider) in minimal, dynamically-built containers. Auto-
 ## Requirements
 
 - [Podman](https://podman.io/) or [Docker](https://docs.docker.com/get-docker/)
-- [llama-server](https://github.com/ggml-org/llama.cpp) in PATH (for `model` commands)
 - .NET 10 SDK (only to build from source)
+
+> **llama-server is optional.** `model` commands start a llama-server automatically — natively if
+> `llama-server` is in your PATH, or as a container (`ghcr.io/ggerganov/llama.cpp:server`) via
+> Podman/Docker otherwise. No manual install required.
 
 ## Install
 
@@ -43,8 +46,16 @@ sudo mv Agelos-linux-x64 /usr/local/bin/Agelos
 ### curl installer (Linux/macOS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<org>/Agelos/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/locheed/Agelos/main/scripts/install.sh | bash
 ```
+
+### PowerShell installer (Windows)
+
+```powershell
+irm https://raw.githubusercontent.com/locheed/Agelos/main/scripts/install.ps1 | iex
+```
+
+Installs to `%USERPROFILE%\.local\bin\agelos.exe` and adds that directory to your user `PATH` automatically. Restart your terminal after installing.
 
 ## Commands
 
@@ -55,6 +66,7 @@ Run an AI coding agent in a container.
 ```bash
 Agelos run opencode
 Agelos run aider
+Agelos run gemini
 
 # Options
 Agelos run opencode --runtimes dotnet:10,node:20   # explicit runtimes
@@ -64,6 +76,11 @@ Agelos run opencode --minimal                       # skip runtime detection
 ```
 
 Container is built from project runtimes (auto-detected or from `.Agelos.yml`). Workspace is mounted at `/workspace`. If `.Agelos/opencode.json` exists, it is synced to `~/.config/opencode/config.json` before launch so each project can have its own model set.
+
+> **Gemini CLI authentication:** Set `GEMINI_API_KEY` in your host environment before running
+> `Agelos run gemini`. The variable is automatically forwarded into the container. Alternatively,
+> run `gemini auth` inside the container the first time — credentials are persisted in
+> `~/.gemini/` which is mounted from your host.
 
 ### `Agelos model add`
 
@@ -236,7 +253,6 @@ Model files download to `~/.Agelos/models/` (shared across projects, not in repo
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - Podman or Docker (for end-to-end testing)
-- `llama-server` in PATH (for model command testing)
 
 ### Run without building binary
 
