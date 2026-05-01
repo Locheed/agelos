@@ -13,13 +13,13 @@ jobs:
           - os: ubuntu-latest
             runtime: linux-x64
             artifact: agelos-linux-x64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             runtime: linux-arm64
             artifact: agelos-linux-arm64
           - os: macos-latest
             runtime: osx-x64
             artifact: agelos-darwin-x64
-          - os: macos-latest
+          - os: macos-13
             runtime: osx-arm64
             artifact: agelos-darwin-arm64
           - os: windows-latest
