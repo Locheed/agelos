@@ -3,8 +3,8 @@
 Write-Host "Installing Agelos..."
 
 $arch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") { "arm64" } else { "x64" }
-$binary = "Agelos-win-$arch.exe"
-$url = "https://github.com/yourname/agelos/releases/latest/download/$binary"
+$binary = "agelos-windows-$arch.exe"
+$url = "https://github.com/Locheed/Agelos/releases/latest/download/$binary"
 
 $installDir = "$env:USERPROFILE\.local\bin"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
@@ -29,4 +29,3 @@ Write-Host "Get started:"
 Write-Host "  mkdir my-project; cd my-project"
 Write-Host "  agelos run opencode"
 Write-Host ""
-
