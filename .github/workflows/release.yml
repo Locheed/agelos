@@ -52,14 +52,13 @@ jobs:
 
       - name: Publish (Linux/macOS)
         if: runner.os != 'Windows'
-        env:
-          CROSS_TOOLCHAIN_FOR_aarch64: aarch64-linux-gnu-
         run: |
           dotnet publish src/Agelos.Cli/Agelos.Cli.csproj \
             -c Release \
             -r ${{ matrix.runtime }} \
             --self-contained \
-            -o publish
+            -o publish \
+            ${{ matrix.runtime == 'linux-arm64' && '-p:LinkerFlavor=lld -p:CppCompilerAndLinker=clang-18 -p:ObjCopyName=aarch64-linux-gnu-objcopy' || '' }}
           
       - name: Publish (Windows)
         if: runner.os == 'Windows'
