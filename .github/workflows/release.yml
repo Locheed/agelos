@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            runtime: linux-x64
+            artifact: agelos-linux-x64
+          - os: ubuntu-latest
+            runtime: linux-arm64
+            artifact: agelos-linux-arm64
+          - os: macos-latest
+            runtime: osx-x64
+            artifact: agelos-darwin-x64
+          - os: macos-latest
+            runtime: osx-arm64
+            artifact: agelos-darwin-arm64
+          - os: windows-latest
+            runtime: win-x64
+            artifact: agelos-windows-x64.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Publish
+        run: |
+          dotnet publish src/Agelos.Cli/Agelos.Cli.csproj \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            -p:PublishAot=true \
+            -p:StripSymbols=true \
+            -p:IlcOptimizationPreference=Speed \
+            -o publish
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: publish/agelos*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            agelos-linux-x64/agelos
+            agelos-linux-arm64/agelos
+            agelos-darwin-x64/agelos
+            agelos-darwin-arm64/agelos
+            agelos-windows-x64.exe/agelos.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

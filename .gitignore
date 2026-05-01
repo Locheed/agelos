@@ -1,0 +1,82 @@
+﻿# ── .NET build outputs ────────────────────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+out/
+
+# Native AOT / publish output
+publish/
+**/publish/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/
+!**/packages/build/
+nuget.config.local
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+*.vcxproj.filters
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Roslyn analyzers & generators cache
+*.GeneratedMSBuildEditorConfig.editorconfig
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+lcov.info
+
+# ── Agelos runtime output (generated; not source) ────────────────────────────
+# Agelos writes per-project container build artefacts here at runtime.
+containers/
+
+# ── Agelos source assets (intentionally tracked) ─────────────────────────────
+# assets/agents/opencode/entrypoint.sh — committed; copied into images at build time
+# .Agelos/opencode.json                — committed; per-project model config
+
+# ── Agelos runtime data ───────────────────────────────────────────────────────
+# Downloaded models live in ~/.Agelos/models/ so nothing to ignore there,
+# but protect any accidental local model drops
+*.gguf
+
+# Project-local Agelos config is intentionally committed (.Agelos/opencode.json)
+# but ignore any secret/override files
+.Agelos/*.local.json
+.Agelos/*.secret.*
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ── Logs & temp ───────────────────────────────────────────────────────────────
+*.log
+*.tmp
+*.temp
+*.swp
+*.bak
+

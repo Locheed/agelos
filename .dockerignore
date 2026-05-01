@@ -1,0 +1,38 @@
+﻿# ── Source control metadata ───────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── IDE / editor noise ────────────────────────────────────────────────────────
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+
+# ── .NET build artefacts (not needed in build context) ────────────────────────
+# The Dockerfile should run `dotnet publish` inside the container; sending
+# pre-built bin/ and obj/ just bloats the context and can cause cache misses.
+[Bb]in/
+[Oo]bj/
+publish/
+TestResults/
+
+# ── Documentation & repo meta ─────────────────────────────────────────────────
+README.md
+CHANGELOG.md
+LICENSE
+*.md
+docs/
+tasks/
+
+# ── Local model files ─────────────────────────────────────────────────────────
+*.gguf
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+

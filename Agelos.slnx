@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Agelos.Cli/Agelos.Cli.csproj" />
+  <Project Path="tests/Agelos.Tests/Agelos.Tests.csproj" />
+</Solution>
