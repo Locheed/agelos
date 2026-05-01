@@ -27,6 +27,17 @@ public class ModelAddCommand : Command
     {
         var projectPath = Directory.GetCurrentDirectory();
 
+        var config = await new ConfigService(new FileService()).LoadConfigAsync(projectPath);
+        if (string.Equals(config?.Agent, "gemini", StringComparison.OrdinalIgnoreCase))
+        {
+            AnsiConsole.MarkupLine("[yellow]Warning:[/] The active agent for this project is [cyan]gemini[/].");
+            AnsiConsole.MarkupLine("[dim]Gemini CLI only connects to Google's Gemini API and does not support[/]");
+            AnsiConsole.MarkupLine("[dim]local llama-server models. The model you download will not be used by gemini.[/]");
+            AnsiConsole.WriteLine();
+            if (!AnsiConsole.Confirm("Continue anyway?")) return;
+            AnsiConsole.WriteLine();
+        }
+
         var pick = ModelPrompts.PromptForModelAndQuant();
         if (pick == null) return;
 
@@ -54,7 +65,8 @@ public class ModelAddCommand : Command
         AnsiConsole.MarkupLine("[green]Updated:[/] .agelos/opencode.json");
 
         AnsiConsole.WriteLine();
-        await LlamaServerService.RestartAsync(modelPath, model.ContextSize);
+        var llamaService = LlamaServerService.Create();
+        await llamaService.RestartAsync(modelPath, model.ContextSize);
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine($"[green]Ready.[/] Active model: [cyan]{displayName}[/]  (port {8033})");

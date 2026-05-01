@@ -191,6 +191,10 @@ public class ContainerBuilder : IContainerBuilder
         "aider" =>
             "# Aider\n" +
             "RUN apk add --no-cache python3 py3-pip && pip3 install --break-system-packages aider-chat\n",
+        "gemini" =>
+            "# Gemini CLI\n" +
+            "RUN apk add --no-cache nodejs npm\n" +
+            "RUN npm install -g @google/gemini-cli\n",
         _ => "# No agent-specific setup\n"
     };
 
@@ -215,6 +219,7 @@ public class ContainerBuilder : IContainerBuilder
     {
         "opencode" => "CMD [\"opencode\"]",
         "aider"    => "CMD [\"aider\"]",
+        "gemini"   => "CMD [\"gemini\"]",
         _          => "CMD [\"/bin/bash\"]"
     };
 }

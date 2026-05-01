@@ -33,6 +33,7 @@ public class ListCommand : Command
         table.AddColumn("Description");
         table.AddRow("opencode", "OpenCode - AI coding agent");
         table.AddRow("aider",    "Aider - AI pair programming");
+        table.AddRow("gemini",   "Gemini CLI - Google Gemini AI coding agent");
 
         AnsiConsole.Write(table);
     }

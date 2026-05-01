@@ -11,7 +11,7 @@ public class RunCommand : Command
 {
     public RunCommand() : base("run", "Run an AI coding agent")
     {
-        var agentArg    = new Argument<string>("agent", "Agent to run (e.g., opencode, aider)");
+        var agentArg    = new Argument<string>("agent", "Agent to run (e.g., opencode, aider, gemini)");
         var runtimesOpt = new Option<string?>("--runtimes", "Runtime specs (e.g., dotnet:10,node:20)");
         var addOnOpt    = new Option<string?>("--addon", "Add-ons to layer on agent (e.g., llama-cpp)");
         var minimalOpt  = new Option<bool>("--minimal", "Start with minimal image");
@@ -67,6 +67,8 @@ public class RunCommand : Command
             }
         }, cts.Token);
 
+        var envVars = GetAgentEnvironment(agent);
+
         try
         {
             await runtime.RunAsync(new ContainerOptions
@@ -74,6 +76,7 @@ public class RunCommand : Command
                 Image = imageTag,
                 WorkingDirectory = "/workspace",
                 Volumes = volumes,
+                Environment = envVars,
                 Interactive = true
             });
         }
@@ -166,6 +169,33 @@ public class RunCommand : Command
         ];
     }
 
+    private static VolumeMount[] GetGeminiCliVolumes(string home)
+    {
+        var geminiDir = Path.Combine(home, ".gemini");
+        Directory.CreateDirectory(geminiDir);
+
+        return
+        [
+            new VolumeMount(geminiDir, "/home/codeuser/.gemini", "rw"),
+        ];
+    }
+
+    private static Dictionary<string, string> GetAgentEnvironment(string agent)
+    {
+        var env = new Dictionary<string, string>();
+
+        if (agent == "gemini")
+        {
+            var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+            if (!string.IsNullOrEmpty(apiKey))
+                env["GEMINI_API_KEY"] = apiKey;
+            else
+                AnsiConsole.MarkupLine("[yellow]Warning: GEMINI_API_KEY is not set. Gemini CLI may not authenticate.[/]");
+        }
+
+        return env;
+    }
+
     private static IReadOnlyList<string>? ParseAddOns(string? spec) =>
         string.IsNullOrWhiteSpace(spec)
             ? null
@@ -184,6 +214,7 @@ public class RunCommand : Command
                 new VolumeMount(Path.Combine(home, ".aider"),
                     "/home/codeuser/.aider", "rw")
             },
+            "gemini" => GetGeminiCliVolumes(home),
             _ => Array.Empty<VolumeMount>()
         };
 
