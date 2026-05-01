@@ -13,18 +13,23 @@ jobs:
           - os: ubuntu-latest
             runtime: linux-x64
             artifact: agelos-linux-x64
-          - os: ubuntu-24.04-arm
+            binary: agelos
+          - os: ubuntu-latest
             runtime: linux-arm64
             artifact: agelos-linux-arm64
-          - os: macos-latest
+            binary: agelos
+          - os: macos-13
             runtime: osx-x64
             artifact: agelos-darwin-x64
-          - os: macos-13
+            binary: agelos
+          - os: macos-latest
             runtime: osx-arm64
             artifact: agelos-darwin-arm64
+            binary: agelos
           - os: windows-latest
             runtime: win-x64
-            artifact: agelos-windows-x64.exe
+            artifact: agelos-windows-x64
+            binary: agelos.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -37,23 +42,43 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore src/Agelos.Cli/Agelos.Cli.csproj
 
-      - name: Publish
+      - name: Install ARM64 cross-compilation tools
+        if: matrix.runtime == 'linux-arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm lld gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu zlib1g-dev
+
+      - name: Publish (Linux/macOS)
+        if: runner.os != 'Windows'
+        env:
+          CROSS_TOOLCHAIN_FOR_aarch64: aarch64-linux-gnu-
         run: |
           dotnet publish src/Agelos.Cli/Agelos.Cli.csproj \
             -c Release \
             -r ${{ matrix.runtime }} \
-            -p:PublishAot=true \
-            -p:StripSymbols=true \
-            -p:IlcOptimizationPreference=Speed \
+            --self-contained \
             -o publish
+          
+      - name: Publish (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          dotnet publish src/Agelos.Cli/Agelos.Cli.csproj `
+            -c Release `
+            -r ${{ matrix.runtime }} `
+            --self-contained `
+            -o publish
+
+      - name: Rename binary
+        shell: bash
+        run: mv publish/${{ matrix.binary }} publish/${{ matrix.artifact }}${{ matrix.runtime == 'win-x64' && '.exe' || '' }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: publish/agelos*
+          path: publish/${{ matrix.artifact }}*
 
   release:
     needs: build
@@ -64,13 +89,15 @@ jobs:
         uses: actions/download-artifact@v4
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          draft: true
+          prerelease: true
           files: |
-            agelos-linux-x64/agelos
-            agelos-linux-arm64/agelos
-            agelos-darwin-x64/agelos
-            agelos-darwin-arm64/agelos
-            agelos-windows-x64.exe/agelos.exe
+            agelos-linux-x64/agelos-linux-x64
+            agelos-linux-arm64/agelos-linux-arm64
+            agelos-darwin-x64/agelos-darwin-x64
+            agelos-darwin-arm64/agelos-darwin-arm64
+            agelos-windows-x64/agelos-windows-x64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
