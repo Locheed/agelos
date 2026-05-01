@@ -14,10 +14,7 @@ jobs:
             runtime: linux-x64
             artifact: agelos-linux-x64
             binary: agelos
-          - os: ubuntu-latest
-            runtime: linux-arm64
-            artifact: agelos-linux-arm64
-            binary: agelos
+          # linux-arm64 temporarily removed — cross-compilation toolchain issue
           - os: macos-13
             runtime: osx-x64
             artifact: agelos-darwin-x64
@@ -94,7 +91,6 @@ jobs:
           prerelease: true
           files: |
             agelos-linux-x64/agelos-linux-x64
-            agelos-linux-arm64/agelos-linux-arm64
             agelos-darwin-x64/agelos-darwin-x64
             agelos-darwin-arm64/agelos-darwin-arm64
             agelos-windows-x64/agelos-windows-x64.exe
