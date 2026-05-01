@@ -35,7 +35,7 @@ safe_exec() {
         fi
         ;;
       node|npm)
-        request_runtime "node:20"
+        request_runtime "node:22"
         ;;
       python3|python)
         request_runtime "python:3.12"
@@ -58,4 +58,3 @@ export -f safe_exec
 export -f request_runtime
 
 exec opencode "$@"
-

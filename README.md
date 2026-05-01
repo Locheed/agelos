@@ -195,11 +195,11 @@ Created and managed by `Agelos model add`. Defines which local models are availa
 
 | Runtime | Example spec |
 |---------|-------------|
-| .NET | `dotnet:10`, `dotnet:8` |
-| Node.js | `node:20`, `node:22` |
-| Python | `python:3.12` |
-| Go | `go:1.22` |
-| Rust | `rust:stable` |
+| .NET    | `dotnet:9`, `dotnet:10`, `dotnet:11` |
+| Node.js | `node:20`, `node:22`, `node:24`, `node:25` |
+| Python  | `python:3.12` |
+| Go      | `go:1.22` |
+| Rust    | `rust:stable` |
 
 ### Curated models (`Agelos model add`)
 

@@ -43,15 +43,16 @@ public static class GreenfieldPrompts
         var version = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Which .NET version?")
-                .AddChoices(".NET 10 (latest)", ".NET 8 (LTS)", "Both (migration scenario)")
+                .AddChoices(".NET 11 (latest)", ".NET 10 (LTS)", ".NET 9", "Both 10+11 (preview)")
         );
 
         return version switch
         {
-            ".NET 10 (latest)"        => new RuntimeRequirements { DotNet = new List<string> { "10" } },
-            ".NET 8 (LTS)"            => new RuntimeRequirements { DotNet = new List<string> { "8" } },
-            "Both (migration scenario)" => new RuntimeRequirements { DotNet = new List<string> { "8", "10" } },
-            _                         => new RuntimeRequirements()
+            ".NET 11 (latest)"          => new RuntimeRequirements { DotNet = new List<string> { "11" } },
+            ".NET 10 (LTS)"             => new RuntimeRequirements { DotNet = new List<string> { "10" } },
+            ".NET 9"                    => new RuntimeRequirements { DotNet = new List<string> { "9" } },
+            "Both 10+11 (preview)"      => new RuntimeRequirements { DotNet = new List<string> { "10", "11" } },
+            _                           => new RuntimeRequirements()
         };
     }
 
@@ -60,15 +61,16 @@ public static class GreenfieldPrompts
         var version = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Which Node.js version?")
-                .AddChoices("Node.js 20 (LTS)", "Node.js 22", "Node.js 18")
+                .AddChoices("Node.js 22 (LTS)", "Node.js 24", "Node.js 25 (latest)", "Node.js 20 (LTS)")
         );
 
         return version switch
         {
-            "Node.js 20 (LTS)" => new RuntimeRequirements { Node = "20" },
-            "Node.js 22"       => new RuntimeRequirements { Node = "22" },
-            "Node.js 18"       => new RuntimeRequirements { Node = "18" },
-            _                  => new RuntimeRequirements()
+            "Node.js 22 (LTS)"      => new RuntimeRequirements { Node = "22" },
+            "Node.js 24"            => new RuntimeRequirements { Node = "24" },
+            "Node.js 25 (latest)"   => new RuntimeRequirements { Node = "25" },
+            "Node.js 20 (LTS)"      => new RuntimeRequirements { Node = "20" },
+            _                       => new RuntimeRequirements()
         };
     }
 
@@ -94,19 +96,20 @@ public static class GreenfieldPrompts
         var backend = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Backend runtime?")
-                .AddChoices(".NET 10", ".NET 8", "Node.js 20", "Python 3.12")
+                .AddChoices(".NET 11", ".NET 10 (LTS)", ".NET 9", "Node.js 22 (LTS)", "Python 3.12")
         );
 
         var backendRequirements = backend switch
         {
-            ".NET 10"      => RuntimeParser.ParseSpecs("dotnet:10"),
-            ".NET 8"       => RuntimeParser.ParseSpecs("dotnet:8"),
-            "Node.js 20"   => RuntimeParser.ParseSpecs("node:20"),
-            "Python 3.12"  => RuntimeParser.ParseSpecs("python:3.12"),
-            _              => new RuntimeRequirements()
+            ".NET 11"           => RuntimeParser.ParseSpecs("dotnet:11"),
+            ".NET 10 (LTS)"     => RuntimeParser.ParseSpecs("dotnet:10"),
+            ".NET 9"            => RuntimeParser.ParseSpecs("dotnet:9"),
+            "Node.js 22 (LTS)"  => RuntimeParser.ParseSpecs("node:22"),
+            "Python 3.12"       => RuntimeParser.ParseSpecs("python:3.12"),
+            _                   => new RuntimeRequirements()
         };
 
-        return backendRequirements with { Node = backendRequirements.Node ?? "20" };
+        return backendRequirements with { Node = backendRequirements.Node ?? "22" };
     }
 
     private static async Task<RuntimeRequirements> PromptCustomRuntimesAsync()
@@ -122,7 +125,8 @@ public static class GreenfieldPrompts
                 .InstructionsText("[grey](Press [blue]<space>[/] to toggle, [green]<enter>[/] to accept)[/]")
                 .AddChoiceGroup("— Backend Languages —", new[]
                 {
-                    ".NET 10", ".NET 8 (LTS)", "Node.js 20", "Node.js 22",
+                    ".NET 11 (latest)", ".NET 10 (LTS)", ".NET 9",
+                    "Node.js 22 (LTS)", "Node.js 24", "Node.js 25 (latest)", "Node.js 20 (LTS)",
                     "Python 3.12", "Python 3.11", "Go 1.22", "Rust (latest)",
                     "Java 21", "PHP 8.3", "Ruby 3.3"
                 })
@@ -139,23 +143,26 @@ public static class GreenfieldPrompts
         {
             var spec = item switch
             {
-                ".NET 10"                     => "dotnet:10",
-                ".NET 8 (LTS)"                => "dotnet:8",
-                "Node.js 20"                  => "node:20",
-                "Node.js 22"                  => "node:22",
-                "Python 3.12"                 => "python:3.12",
-                "Python 3.11"                 => "python:3.11",
-                "Go 1.22"                     => "go:1.22",
-                "Rust (latest)"               => "rust:latest",
-                "Java 21"                     => "java:21",
-                "PHP 8.3"                     => "php:8.3",
-                "Ruby 3.3"                    => "ruby:3.3",
-                "Flutter"                     => "flutter:latest",
-                "Elixir"                      => "elixir:latest",
-                "Haskell"                     => "haskell:latest",
-                "Zig"                         => "zig:latest",
+                ".NET 11 (latest)"               => "dotnet:11",
+                ".NET 10 (LTS)"                  => "dotnet:10",
+                ".NET 9"                         => "dotnet:9",
+                "Node.js 22 (LTS)"               => "node:22",
+                "Node.js 24"                     => "node:24",
+                "Node.js 25 (latest)"            => "node:25",
+                "Node.js 20 (LTS)"               => "node:20",
+                "Python 3.12"                    => "python:3.12",
+                "Python 3.11"                    => "python:3.11",
+                "Go 1.22"                        => "go:1.22",
+                "Rust (latest)"                  => "rust:latest",
+                "Java 21"                        => "java:21",
+                "PHP 8.3"                        => "php:8.3",
+                "Ruby 3.3"                       => "ruby:3.3",
+                "Flutter"                        => "flutter:latest",
+                "Elixir"                         => "elixir:latest",
+                "Haskell"                        => "haskell:latest",
+                "Zig"                            => "zig:latest",
                 "+ Type custom runtime manually" => null,
-                _                             => null
+                _                               => null
             };
 
             if (spec != null) runtimeSpecs.Add(spec);

@@ -60,9 +60,13 @@ public class ListCommand : Command
         var table = new Table();
         table.AddColumn("Runtime");
         table.AddColumn("Description");
-        table.AddRow("dotnet:8",    ".NET 8 (LTS)");
-        table.AddRow("dotnet:10",   ".NET 10 (latest)");
+        table.AddRow("dotnet:9",    ".NET 9");
+        table.AddRow("dotnet:10",   ".NET 10 (LTS)");
+        table.AddRow("dotnet:11",   ".NET 11 (latest)");
         table.AddRow("node:20",     "Node.js 20 (LTS)");
+        table.AddRow("node:22",     "Node.js 22 (LTS)");
+        table.AddRow("node:24",     "Node.js 24");
+        table.AddRow("node:25",     "Node.js 25 (latest)");
         table.AddRow("python:3.12", "Python 3.12");
         table.AddRow("go:1.22",     "Go 1.22");
         table.AddRow("rust:latest", "Rust (latest)");
