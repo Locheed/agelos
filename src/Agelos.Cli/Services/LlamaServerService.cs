@@ -1,16 +1,19 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Spectre.Console;
 
 namespace Agelos.Cli.Services;
 
 public class LlamaServerService
 {
-    private const int    Port            = 8033;
-    private const string BinaryName      = "llama-server";
-    private const string ContainerName   = "agelos-llama-server";
-    private const string ContainerImage  = "ghcr.io/ggerganov/llama.cpp:server";
-    private const string ModelsMount     = "/models";
-    private const int    HealthChecks    = 30;
+    private const int    Port                 = 8033;
+    private const string BinaryName           = "llama-server";
+    private const string ContainerName        = "agelos-llama-server";
+    private const string ContainerImage       = "ghcr.io/ggerganov/llama.cpp:server";
+    private const string ContainerImageCuda   = "ghcr.io/ggerganov/llama.cpp:server-cuda";
+    private const string ContainerImageVulkan = "ghcr.io/ggerganov/llama.cpp:server-vulkan";
+    private const string ModelsMount          = "/models";
+    private const int    HealthChecks         = 30;
 
     // The container binary to use when llama-server is not in PATH ("podman" or "docker").
     private readonly string? _containerBinary;
@@ -150,11 +153,19 @@ public class LlamaServerService
 
     private void StartContainer(string hostModelPath, int contextSize)
     {
-        var modelsDir    = Path.GetDirectoryName(hostModelPath)!;
-        var modelFile    = Path.GetFileName(hostModelPath);
-        var containerModel = $"{ModelsMount}/{modelFile}";
+        string modelsDir      = Path.GetDirectoryName(hostModelPath)!;
+        string modelFile      = Path.GetFileName(hostModelPath);
+        string containerModel = $"{ModelsMount}/{modelFile}";
 
-        AnsiConsole.MarkupLine($"[dim]Pulling {ContainerImage} if needed (first run only)...[/]");
+        GpuMode gpu   = DetectGpu();
+        string  image = gpu switch
+        {
+            GpuMode.Cuda   => ContainerImageCuda,
+            GpuMode.Vulkan => ContainerImageVulkan,
+            _              => ContainerImage,
+        };
+
+        AnsiConsole.MarkupLine($"[dim]Pulling {image} if needed (first run only)...[/]");
 
         // Run detached, auto-remove on stop, named so we can stop it later.
         var psi = new ProcessStartInfo(_containerBinary!)
@@ -165,24 +176,41 @@ public class LlamaServerService
             RedirectStandardError  = true,
         };
 
-        foreach (var arg in new[]
+        psi.ArgumentList.Add("run");
+        psi.ArgumentList.Add("-d");
+        psi.ArgumentList.Add("--rm");
+        psi.ArgumentList.Add("--name"); psi.ArgumentList.Add(ContainerName);
+        psi.ArgumentList.Add("-p");     psi.ArgumentList.Add($"{Port}:8080");
+        psi.ArgumentList.Add("-v");     psi.ArgumentList.Add($"{modelsDir}:{ModelsMount}:ro");
+
+        switch (gpu)
         {
-            "run", "-d", "--rm",
-            "--name", ContainerName,
-            "-p", $"{Port}:8080",
-            "-v", $"{modelsDir}:{ModelsMount}:ro",
-            ContainerImage,
-            "--model",     containerModel,
-            "--port",      "8080",
-            "--host",      "0.0.0.0",
-            "--ctx-size",  contextSize.ToString(),
-            "-ngl",        "999"
-        })
-            psi.ArgumentList.Add(arg);
+            case GpuMode.Cuda:
+                psi.ArgumentList.Add("--gpus");
+                psi.ArgumentList.Add("all");
+                break;
+            case GpuMode.Vulkan:
+                psi.ArgumentList.Add("--device");
+                psi.ArgumentList.Add("/dev/dri");
+                break;
+        }
+
+        psi.ArgumentList.Add(image);
+        psi.ArgumentList.Add("--model");    psi.ArgumentList.Add(containerModel);
+        psi.ArgumentList.Add("--port");     psi.ArgumentList.Add("8080");
+        psi.ArgumentList.Add("--host");     psi.ArgumentList.Add("0.0.0.0");
+        psi.ArgumentList.Add("--ctx-size"); psi.ArgumentList.Add(contextSize.ToString());
+        psi.ArgumentList.Add("-ngl");       psi.ArgumentList.Add("999");
 
         try
         {
-            AnsiConsole.MarkupLine($"[dim]Starting containerised llama-server: {modelFile}...[/]");
+            string gpuLabel = gpu switch
+            {
+                GpuMode.Cuda   => " (CUDA)",
+                GpuMode.Vulkan => " (Vulkan)",
+                _              => " (CPU)",
+            };
+            AnsiConsole.MarkupLine($"[dim]Starting containerised llama-server: {modelFile}{gpuLabel}...[/]");
             using var proc = Process.Start(psi);
             proc?.WaitForExit(10_000);
         }
@@ -190,6 +218,57 @@ public class LlamaServerService
         {
             AnsiConsole.MarkupLine($"[red]Failed to start container: {ex.Message}[/]");
         }
+    }
+
+    // ── GPU detection ─────────────────────────────────────────────────────────
+
+    public enum GpuMode { None, Cuda, Vulkan }
+
+    /// <summary>
+    /// Probes the host for GPU capabilities in priority order:
+    ///   1. NVIDIA CUDA  — nvidia-smi present and exits 0
+    ///   2. Vulkan       — vulkaninfo present and exits 0 (AMD/Intel/NVIDIA on Linux/WSL)
+    ///   3. None         — CPU fallback
+    /// </summary>
+    public static GpuMode DetectGpu()
+    {
+        if (IsCommandAvailable("nvidia-smi"))
+        {
+            bool toolkitAvailable = IsCommandAvailable("nvidia-container-cli")
+                                 || IsCommandAvailable("nvidia-ctk");
+
+            if (toolkitAvailable)
+            {
+                AnsiConsole.MarkupLine("[dim]NVIDIA GPU + container toolkit detected — using CUDA image.[/]");
+                return GpuMode.Cuda;
+            }
+
+            AnsiConsole.MarkupLine("[yellow]Warning:[/] NVIDIA GPU detected but nvidia-container-toolkit is not installed.");
+            AnsiConsole.MarkupLine("[dim]CUDA container acceleration is unavailable — falling back to Vulkan.[/]");
+            AnsiConsole.MarkupLine("[dim]To enable CUDA: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html[/]");
+            AnsiConsole.MarkupLine("[dim]Tip: install llama-server natively for full GPU performance without any toolkit.[/]");
+            // Fall through — NVIDIA GPUs also support Vulkan
+        }
+
+        if (IsCommandAvailable("vulkaninfo"))
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                AnsiConsole.MarkupLine("[yellow]Warning:[/] Vulkan GPU detected but Windows container runtimes (Docker Desktop,");
+                AnsiConsole.MarkupLine("[dim]Podman Desktop/Machine) do not support /dev/dri passthrough — Vulkan container[/]");
+                AnsiConsole.MarkupLine("[dim]acceleration is unavailable on Windows. Falling back to CPU image.[/]");
+                AnsiConsole.MarkupLine("[dim]For GPU acceleration, install llama-server natively (no container overhead, works on Windows).[/]");
+                // Fall through to CPU
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[dim]Vulkan-capable GPU detected — using Vulkan image.[/]");
+                return GpuMode.Vulkan;
+            }
+        }
+
+        AnsiConsole.MarkupLine("[dim]No GPU detected — using CPU image (inference will be slower).[/]");
+        return GpuMode.None;
     }
 
     // ── Health check ─────────────────────────────────────────────────────────
