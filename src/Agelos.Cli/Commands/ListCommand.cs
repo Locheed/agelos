@@ -47,7 +47,8 @@ public class ListCommand : Command
         table.AddColumn("Name");
         table.AddColumn("Description");
         table.AddColumn("Usage");
-        table.AddRow("llama-cpp", "llama.cpp - Local LLM inference", "--addon llama-cpp");
+        table.AddRow("llama-cpp",  "llama.cpp - Local LLM inference",                "--addon llama-cpp");
+        table.AddRow("open-webui", "Open WebUI — browser chat UI backed by llama-server", "agelos webui start");
 
         AnsiConsole.Write(table);
     }

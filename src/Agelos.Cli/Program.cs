@@ -10,5 +10,6 @@ rootCommand.AddCommand(new NewCommand());
 rootCommand.AddCommand(new AddRuntimeCommand());
 rootCommand.AddCommand(new PrebuildCommand());
 rootCommand.AddCommand(new ModelCommand());
+rootCommand.AddCommand(new WebUiCommand());
 
 return await rootCommand.InvokeAsync(args);

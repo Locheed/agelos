@@ -13,6 +13,7 @@ Runs AI agents (OpenCode, Aider) in minimal, dynamically-built containers. Auto-
 - **Single binary** — Native AOT, no .NET runtime required on host
 - **Agent runtime requests** — agents can request new runtimes mid-session; Agelos prompts for approval and rebuilds
 - **Local model management** — download GGUF models, manage per-project llama-server config
+- **Open WebUI** — one-command browser chat UI backed by llama-server; optional CUDA GPU acceleration
 
 ## Requirements
 
@@ -20,8 +21,9 @@ Runs AI agents (OpenCode, Aider) in minimal, dynamically-built containers. Auto-
 - .NET 10 SDK (only to build from source)
 
 > **llama-server is optional.** `model` commands start a llama-server automatically — natively if
-> `llama-server` is in your PATH, or as a container (`ghcr.io/ggerganov/llama.cpp:server`) via
-> Podman/Docker otherwise. No manual install required.
+> `llama-server` is in your PATH, or as a container via Podman/Docker otherwise. The container
+> image is auto-selected based on your GPU: CUDA (`server-cuda`) for NVIDIA, Vulkan (`server-vulkan`)
+> for AMD/Intel, or CPU-only (`server`) as a fallback. No manual install or configuration required.
 
 ## Install
 
@@ -123,6 +125,59 @@ Interactively delete a downloaded model and unregister it from project config.
 
 ```bash
 Agelos model remove
+```
+
+### `Agelos webui start`
+
+Spin up [Open WebUI](https://github.com/open-webui/open-webui) as a local browser chat interface backed by llama-server. The container is pulled automatically on first use.
+
+```bash
+Agelos webui start           # CPU image, opens browser when ready
+Agelos webui start --cuda    # CUDA-accelerated image (requires NVIDIA GPU + nvidia-container-toolkit)
+```
+
+- Checks llama-server health on port 8033 and warns if it isn't running (non-blocking — UI still launches)
+- Auto-selects the next free port starting from **3000** if 3000 is already in use
+- Opens your default browser automatically once Open WebUI is ready
+- If `OPENAI_API_KEY` is set in your environment it is forwarded into the container; otherwise a placeholder is used (llama-server does not validate API keys)
+
+> **GPU note for Open WebUI (`--cuda`):** The `--cuda` flag controls the Open WebUI container image only.
+> llama-server's container image is auto-selected separately by `agelos model add` — no flag needed there.
+> See the GPU auto-detection table below.
+
+### llama-server GPU auto-detection
+
+`agelos model add` (and any restart) probes the host and picks the right llama.cpp container image automatically:
+
+| Detected | Image used | Docker args added | Extra requirement |
+|---|---|---|---|
+| `nvidia-smi` + `nvidia-container-cli` or `nvidia-ctk` | `ghcr.io/ggerganov/llama.cpp:server-cuda` | `--gpus all` | [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) |
+| `nvidia-smi` only (toolkit missing) | falls through to Vulkan ↓ | — | — |
+| `vulkaninfo` in PATH (Linux / WSL2) | `ghcr.io/ggerganov/llama.cpp:server-vulkan` | `--device /dev/dri` | None — standard device passthrough |
+| `vulkaninfo` in PATH (Windows) | falls through to CPU ↓ | — | `/dev/dri` unavailable in Docker Desktop / Podman Desktop/Machine |
+| Neither found / Windows no toolkit | `ghcr.io/ggerganov/llama.cpp:server` | *(none)* | *(CPU only)* |
+
+If an NVIDIA GPU is found but the toolkit is not installed, Agelos warns and falls back to Vulkan on Linux/WSL2, or CPU on Windows. No manual intervention required in any case.
+
+> **Best performance tip:** Install [`llama-server`](https://github.com/ggml-org/llama.cpp/releases) natively on your host.
+> Agelos always prefers the native binary over a container — it talks to your GPU directly via CUDA/Vulkan/Metal
+> drivers with no container overhead and no toolkit requirement.
+> Vulkan container mode works on Linux and WSL2 but **not** on Windows Docker Desktop (no `/dev/dri` passthrough).
+
+### `Agelos webui stop`
+
+Stop the running Open WebUI container.
+
+```bash
+Agelos webui stop
+```
+
+### `Agelos webui status`
+
+Show whether Open WebUI is running and at which URL, plus llama-server health.
+
+```bash
+Agelos webui status
 ```
 
 ### `Agelos list`
@@ -261,6 +316,10 @@ Model files download to `~/.Agelos/models/` (shared across projects, not in repo
 dotnet run --project src/Agelos.Cli -- run opencode
 dotnet run --project src/Agelos.Cli -- model list
 dotnet run --project src/Agelos.Cli -- model add
+dotnet run --project src/Agelos.Cli -- webui start
+dotnet run --project src/Agelos.Cli -- webui start --cuda
+dotnet run --project src/Agelos.Cli -- webui stop
+dotnet run --project src/Agelos.Cli -- webui status
 dotnet run --project src/Agelos.Cli -- --help
 ```
 
@@ -316,9 +375,9 @@ Output: `src/Agelos.Cli/bin/Release/net10.0/<rid>/publish/Agelos[.exe]`
 ```
 src/
   Agelos.Cli/
-    Commands/    # CLI commands: run, init, list, new, add-runtime, prebuild, model
+    Commands/    # CLI commands: run, init, list, new, add-runtime, prebuild, model, webui
     Core/        # Runtime detection, container building, container running
-    Services/    # File, process, config, model download, llama-server, opencode config
+    Services/    # File, process, config, model download, llama-server, opencode config, open-webui
     Models/      # Data structures: config, container options, runtime requirements, model catalog
     Prompts/     # Interactive Spectre.Console prompts (greenfield setup, model selection)
 tests/
